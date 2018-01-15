@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Object\**" />
+    <Compile Remove="Scripting\**" />
+    <EmbeddedResource Remove="Object\**" />
+    <EmbeddedResource Remove="Scripting\**" />
+    <None Remove="Object\**" />
+    <None Remove="Scripting\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WindowsAzure.Storage" Version="8.6.0" />
+  </ItemGroup>
+
+</Project>
+
