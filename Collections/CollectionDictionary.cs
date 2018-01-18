@@ -14,6 +14,11 @@ namespace Rezgar.Utils.Collections
     public class CollectionDictionary<TKey, TValue> : Dictionary<TKey, IList<TValue>>
     {
         public CollectionDictionary() { }
+        public CollectionDictionary(CollectionDictionary<TKey, TValue> source)
+        {
+            foreach (var record in source)
+                AddValues(record.Key, record.Value);
+        }
 
         public CollectionDictionary(IEqualityComparer<TKey> comparer) : base(comparer) { }
 
@@ -203,6 +208,17 @@ namespace Rezgar.Utils.Collections
             var result = new CollectionDictionary<TKey, TElement>();
             foreach (var element in source)
                 result.AddValue(keySelector(element), elementSelector(element), true);
+
+            return result;
+        }
+
+        public static CollectionDictionary<TKey, TElement> MergeWith<TKey, TElement>(this CollectionDictionary<TKey, TElement> collectionDictionary, params IDictionary<TKey, TElement>[] dictionaries)
+        {
+            var result = new CollectionDictionary<TKey, TElement>(collectionDictionary);
+
+            foreach (var dict in dictionaries)
+                foreach (var x in dict)
+                    result.AddValue(x.Key, x.Value);
 
             return result;
         }
