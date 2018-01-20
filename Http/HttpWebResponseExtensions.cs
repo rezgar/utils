@@ -1,13 +1,38 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Rezgar.Utils.Http
 {
     public static class HttpWebResponseExtensions
     {
+        #region Content
+
+        public static Task<string> GetResponseStringAsync(this WebResponse webResponse)
+        {
+            // NOTE: Not disposing, because it would be done by HttpWebResponse own Dispose()
+            var responseStream = webResponse.GetResponseStream();
+
+            var encoding = System.Text.Encoding.Default;
+            var contentType = new System.Net.Mime.ContentType(webResponse.Headers[HttpResponseHeader.ContentType]);
+            if (!String.IsNullOrEmpty(contentType.CharSet))
+            {
+                encoding = System.Text.Encoding.GetEncoding(contentType.CharSet);
+            }
+            using (var reader = new StreamReader(responseStream, encoding))
+            {
+                return reader.ReadToEndAsync();
+            }
+        }
+
+        #endregion
+
+        #region Cookies
+
         /// <summary>
         /// https://stackoverflow.com/questions/15103513/httpwebresponse-cookies-empty-despite-set-cookie-header-no-redirect
         /// </summary>
@@ -143,5 +168,7 @@ namespace Rezgar.Utils.Http
             }
             return cc;
         }
+
+        #endregion
     }
 }
