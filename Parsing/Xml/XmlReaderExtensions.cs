@@ -4,6 +4,7 @@ using System.Text;
 using System.Xml;
 using System.Reflection;
 using System.ComponentModel;
+using System.Linq;
 
 namespace Rezgar.Utils.Parsing.Xml
 {
@@ -66,13 +67,22 @@ namespace Rezgar.Utils.Parsing.Xml
 
         public static void ProcessChildren(this XmlReader reader, Action<string, XmlReader> nodeAction)
         {
+            reader.ProcessChildren(
+                (name, childReader) =>
+                {
+                    nodeAction(name, childReader);
+                    return true;
+                }).ToArray();
+        }
+        public static IEnumerable<TNodeResult> ProcessChildren<TNodeResult>(this XmlReader reader, Func<string, XmlReader, TNodeResult> nodeAction)
+        {
             var parentName = reader.Name;
             while (!(reader.Name == parentName && (reader.NodeType == XmlNodeType.EndElement || reader.IsEmptyElement)) && reader.Read())
             {
                 if (reader.NodeType != XmlNodeType.Element)
                     continue;
 
-                nodeAction(reader.Name, reader);
+                yield return nodeAction(reader.Name, reader);
             }
         }
 
