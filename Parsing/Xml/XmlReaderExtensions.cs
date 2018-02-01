@@ -86,7 +86,7 @@ namespace Rezgar.Utils.Parsing.Xml
             }
         }
 
-        public static object ChangeType(object value, Type conversionType)
+        private static object ChangeType(object value, Type conversionType)
         {
             // Note: This if block was taken from Convert.ChangeType as is, and is needed here since we're
             // checking properties on conversionType below.
