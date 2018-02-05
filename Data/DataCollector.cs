@@ -6,6 +6,8 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using System.Timers;
+using Newtonsoft.Json;
+using System.Threading;
 
 namespace Rezgar.Utils.Data
 {
@@ -39,7 +41,7 @@ namespace Rezgar.Utils.Data
         private readonly ConcurrentBag<TDataType> _data;
 
         // Timer for dumping collected data
-        private readonly Timer _collectionTimer = new Timer();
+        private readonly System.Timers.Timer _collectionTimer = new System.Timers.Timer();
 
         #endregion
 
@@ -75,7 +77,7 @@ namespace Rezgar.Utils.Data
 
         #region Collection
 
-        public void ScheduleCollection(TimeSpan periodTimeSpan, Func<IList<TDataType>, bool> onDataCollected)
+        public void ScheduleCollection(TimeSpan periodTimeSpan, Func<IList<TDataType>, Task<bool>> onDataCollectedAsync)
         {
             _collectionTimer.Enabled = false;
             _collectionTimer.Interval = periodTimeSpan.TotalMilliseconds;
@@ -87,7 +89,8 @@ namespace Rezgar.Utils.Data
                 var success = false;
                 try
                 {
-                    success = onDataCollected(data);
+                    // TODO: Find a way for true async, using timer or something else
+                    success = onDataCollectedAsync(data).Result;
                 }
                 catch (Exception ex)
                 {
@@ -138,12 +141,15 @@ namespace Rezgar.Utils.Data
             var fileName = $"{DateTime.UtcNow.Ticks}_{typeof(TDataType).Name}.dmp.temp";
             var filePath = Path.Combine(_tempFilesDirectoryPath, fileName);
 
+            var serializer = new JsonSerializer();
             using (var fileStream = File.Create(filePath))
             {
-                var formatter = new BinaryFormatter();
-                formatter.Serialize(fileStream, data);
-
-                await fileStream.FlushAsync();
+                using (var sr = new StreamWriter(fileStream))
+                using (var writer = new JsonTextWriter(sr))
+                {
+                    serializer.Serialize(writer, data);
+                    await fileStream.FlushAsync();
+                }
             }
 
             return fileName;
@@ -165,13 +171,15 @@ namespace Rezgar.Utils.Data
         {
             var result = new List<TDataType>();
 
+            var serializer = new JsonSerializer();
             if (Directory.Exists(_tempFilesDirectoryPath))
                 foreach (var filePath in Directory.GetFiles(_tempFilesDirectoryPath))
                 {
                     using (var stream = File.OpenRead(filePath))
                     {
-                        var formatter = new BinaryFormatter();
-                        result.Add(formatter.Deserialize(stream) as TDataType);
+                        using (var sr = new StreamReader(stream))
+                        using (var jsonTextReader = new JsonTextReader(sr))
+                            result.Add(serializer.Deserialize<TDataType>(jsonTextReader));
                     }
                 }
 
@@ -184,7 +192,20 @@ namespace Rezgar.Utils.Data
 
         public void Dispose()
         {
-            _collectionTimer.Enabled = false;
+            // collect one last time, in order not to lose data
+            if (_collectionTimer.Enabled)
+            {
+                var semaphore = new SemaphoreSlim(0, 1);
+
+                _collectionTimer.Elapsed += (sender, e) =>
+                {
+                    _collectionTimer.Enabled = false;
+                    semaphore.Release();
+                };
+
+                semaphore.Wait();
+            }
+
             _collectionTimer.Dispose();
 
             CleanupTempFiles();
