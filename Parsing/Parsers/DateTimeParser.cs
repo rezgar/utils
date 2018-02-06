@@ -22,7 +22,8 @@ namespace Rezgar.Utils.Parsing.Parsers
         public DateTime? Parse(string value)
         {
             DateTime result;
-            if (_valueFormatOriginal != null && DateTime.TryParseExact(value, _valueFormatOriginal, CultureInfo.InvariantCulture, DateTimeStyles.None, out result)) { }
+            if (_valueFormatOriginal != null && DateTime.TryParseExact(value, _valueFormatOriginal, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
+                return result;
             else if (_valueFormatOriginal == null && DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
                 return result;
 
