@@ -19,7 +19,7 @@ namespace Rezgar.Utils.Parsing.Parsers
 
         public decimal? Parse(string value)
         {
-            if (decimal.TryParse(value, System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture, out var result))
+            if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
                 return result;
 
             return null;
